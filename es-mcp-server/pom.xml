@@ -14,6 +14,8 @@
     <properties>
         <java.version>17</java.version>
         <spring.boot.version>3.5.6</spring.boot.version>
+        <!-- 强制 Maven 编译使用 Java 17，避免 IDE/编译器回落到 -source 1.5 -->
+        <maven.compiler.release>${java.version}</maven.compiler.release>
     </properties>
 
     <dependencyManagement>
@@ -40,7 +42,17 @@
         <dependency>
             <groupId>co.elastic.clients</groupId>
             <artifactId>elasticsearch-java</artifactId>
-            <version>8.15.0</version>
+            <version>7.17.28</version>
+        </dependency>
+
+        <!--
+          elasticsearch-java 7.17.x 需要匹配的低层 RestClient 版本；
+          显式锁定避免由于依赖传递导致的 NoSuchMethodError。
+        -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>7.17.28</version>
         </dependency>
 
         <!-- JSON 处理（如果需要手动构造/解析） -->
@@ -66,8 +78,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
                 <configuration>
                     <mainClass>com.yourcompany.mcp.EsMcpApplication</mainClass>
                 </configuration>
