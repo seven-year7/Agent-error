@@ -1,6 +1,0 @@
-com\yourcompany\mcp\service\EsLogService.class
-com\yourcompany\mcp\tools\LogQueryTools.class
-com\yourcompany\mcp\service\HelloService.class
-com\yourcompany\mcp\EsMcpApplication.class
-com\yourcompany\mcp\config\McpServerConfig.class
-com\yourcompany\mcp\config\EsClientConfig.class
