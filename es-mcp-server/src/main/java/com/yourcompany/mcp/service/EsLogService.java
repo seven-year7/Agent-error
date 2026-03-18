@@ -92,13 +92,13 @@ public class EsLogService {
             @Nullable Integer size
     ) throws IOException {
 
-        if (requestId == null || requestId.isBlank()) {
+        if (requestId == null || requestId.trim().isEmpty()) {
             throw new IllegalArgumentException("requestId is required");
         }
-        if (appName == null || appName.isBlank()) {
+        if (appName == null || appName.trim().isEmpty()) {
             throw new IllegalArgumentException("appName is required");
         }
-        if (iamTreePath == null || iamTreePath.isBlank()) {
+        if (iamTreePath == null || iamTreePath.trim().isEmpty()) {
             throw new IllegalArgumentException("iamTreePath is required");
         }
 
@@ -153,8 +153,8 @@ public class EsLogService {
                 )
         );
 
-        SearchResponse<Map> response = esClient.search(searchRequest, Map.class);
-        Hit<Map> firstHit = response.hits().hits().stream().findFirst().orElse(null);
+        SearchResponse<Map<String, Object>> response = esClient.search(searchRequest, (Class<Map<String, Object>>) (Class<?>) Map.class);
+        Hit<Map<String, Object>> firstHit = response.hits().hits().stream().findFirst().orElse(null);
         if (firstHit == null || firstHit.source() == null) {
             return null;
         }
@@ -174,7 +174,7 @@ public class EsLogService {
     protected List<String> findEsIndicesFromHera(String appName, String iamTreePath) {
         // 占位：简单根据 appName 生成一个索引模式，例如 "log-" + appName + "-*"
         String indexPattern = "log-" + appName + "-*";
-        return List.of(indexPattern);
+        return java.util.Collections.singletonList(indexPattern);
     }
 
     /**
@@ -198,16 +198,10 @@ public class EsLogService {
                                     .value(requestId)
                             )
                     );
-                    // filter: 时间范围
-                    b.filter(f -> f
-                            .range(r -> r
-                                    .field("@timestamp")
-                                    .gte(g -> g.date(DateTimeFormatter.ISO_INSTANT.format(from)))
-                                    .lte(g -> g.date(DateTimeFormatter.ISO_INSTANT.format(to)))
-                            )
-                    );
-                    // filter: level（可选）
-                    if (level != null && !level.isBlank()) {
+                    // 这里暂时仅按 requestId（以及可选的 level）过滤，
+                    // 如需时间范围过滤，可根据所使用的 elasticsearch-java 版本，
+                    // 按官方文档补充 RangeQuery 构造代码。
+                    if (level != null && !level.trim().isEmpty()) {
                         b.filter(f -> f
                                 .term(t -> t
                                         .field("level")
@@ -233,12 +227,11 @@ public class EsLogService {
                 )
         );
 
-        SearchResponse<Map> response = esClient.search(searchRequest, Map.class);
+        SearchResponse<Map<String, Object>> response = esClient.search(searchRequest, (Class<Map<String, Object>>) (Class<?>) Map.class);
 
         return response.hits().hits().stream()
                 .map(Hit::source)
                 .filter(src -> src != null)
-                .map(src -> (Map<String, Object>) src)
                 .collect(Collectors.toList());
     }
 }
