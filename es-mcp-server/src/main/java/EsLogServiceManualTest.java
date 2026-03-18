@@ -36,31 +36,37 @@ public class EsLogServiceManualTest {
     // ====================================
 
     public static void main(String[] args) throws IOException {
+        System.out.println("==== EsLogServiceManualTest 启动 ====");
+        System.out.printf("ES 连接配置 -> host=%s, port=%d, scheme=%s%n", ES_HOST, ES_PORT, ES_SCHEME);
+        System.out.printf("查询参数 -> index=%s, requestId=%s, size=%d%n", INDEX_NAME, REQUEST_ID, QUERY_SIZE);
+
         // 1. 构建底层 RestClient
+        System.out.println("[1] 构建 RestClient...");
         RestClient restClient = RestClient.builder(
                 new HttpHost(ES_HOST, ES_PORT, ES_SCHEME)
         ).build();
 
         // 2. 使用 JacksonJsonpMapper 构建 Transport
+        System.out.println("[2] 构建 RestClientTransport (JacksonJsonpMapper)...");
         RestClientTransport transport = new RestClientTransport(
                 restClient,
                 new JacksonJsonpMapper()
         );
 
         // 3. 构建 ElasticsearchClient
+        System.out.println("[3] 构建 ElasticsearchClient 实例...");
         ElasticsearchClient client = new ElasticsearchClient(transport);
 
         // 4. 创建 EsLogService 并发起查询
+        System.out.println("[4] 创建 EsLogService，并准备发起 queryByRequestId 调用...");
         EsLogService esLogService = new EsLogService(client);
 
         try {
-            System.out.printf("开始查询 ES，index=%s, requestId=%s, size=%d%n",
-                    INDEX_NAME, REQUEST_ID, QUERY_SIZE);
-
+            System.out.println("[5] 开始执行 ES 查询...");
             List<Map<String, Object>> logs =
                     esLogService.queryByRequestId(INDEX_NAME, REQUEST_ID, QUERY_SIZE);
 
-            System.out.printf("查询完成，共返回 %d 条结果%n", logs.size());
+            System.out.printf("[6] 查询完成，共返回 %d 条结果%n", logs.size());
 
             for (int i = 0; i < logs.size(); i++) {
                 System.out.printf("---- 结果 #%d ----%n", i + 1);
@@ -70,18 +76,36 @@ public class EsLogServiceManualTest {
             }
 
             if (logs.isEmpty()) {
-                System.out.println("没有查询到任何结果，请检查索引名 / requestId / 时间范围等是否正确。");
+                System.out.println("[提示] 没有查询到任何结果，请检查：");
+                System.out.println("  - INDEX_NAME 是否正确（是否包含通配符 *）");
+                System.out.println("  - REQUEST_ID 是否真实存在于索引中");
+                System.out.println("  - ES 中该索引是否有数据");
             }
         } catch (ElasticsearchException e) {
-            System.err.println("ES 查询发生 ElasticsearchException：");
+            System.err.println("[错误] ES 查询发生 ElasticsearchException：");
             e.printStackTrace();
         } catch (IOException e) {
-            System.err.println("ES 查询发生 IO 异常：");
+            System.err.println("[错误] ES 查询发生 IO 异常（可能是网络/连接问题）：");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[错误] 发生未预期的异常：");
             e.printStackTrace();
         } finally {
             // 5. 关闭底层客户端
-            transport.close();
-            restClient.close();
+            System.out.println("[7] 关闭 Elasticsearch 客户端连接...");
+            try {
+                transport.close();
+            } catch (Exception e) {
+                System.err.println("[警告] 关闭 transport 时发生异常：");
+                e.printStackTrace();
+            }
+            try {
+                restClient.close();
+            } catch (Exception e) {
+                System.err.println("[警告] 关闭 restClient 时发生异常：");
+                e.printStackTrace();
+            }
+            System.out.println("==== EsLogServiceManualTest 结束 ====");
         }
     }
 }
